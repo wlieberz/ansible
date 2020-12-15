@@ -1,0 +1,66 @@
+---
+
+- name: Check if docker is already installed.
+  become: true
+  package_facts:
+    manager: "auto"
+
+- name: Install docker if not installed.
+  block:
+
+    - name: Ensure older docker versions are removed when installing docker.
+      apt:
+        pkg:
+          - docker
+          - docker-engine
+          - docker.io
+          - containerd
+          - runc
+        state: absent
+
+    - name: Ensure pre-reqs are installed.
+      apt:
+        pkg:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg-agent
+          - software-properties-common
+        state: present
+        cache_valid_time: 600 # Update package cache if cache older than 600 sec aka 10 min.
+
+    - name: Add Docker’s official GPG key.
+      shell: curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+
+    - name: Add the Docker stable repo.
+      shell: add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+
+    - name: Install latest Docker
+      apt:
+        pkg:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - software-properties-common
+        state: present
+        update_cache: yes
+  when: "'docker-ce' not in ansible_facts.packages"
+  become: true
+
+- name: Ensure service started and enabled.
+  become: true
+  service:
+    name: docker
+    state: started
+    enabled: yes
+
+- name: Ensure daemon.json config.
+  become: true
+  template:
+    src: daemon.json.j2
+    dest: /etc/docker/daemon.json
+    owner: root
+    group: root
+    mode: '0664'
+  notify:
+  - restart docker
