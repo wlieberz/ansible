@@ -1,0 +1,19 @@
+[Unit]
+Description=Run nodejs api-server via pm2 process manager.
+Documentation=https://pm2.keymetrics.io/
+After=network.target
+
+[Service]
+Type=forking
+User=three-tier-webapp-api
+Environment=PATH=/sbin:/bin:/usr/sbin:/usr/bin:/opt/node/bin:/opt/node/bin:/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
+Environment=PM2_HOME=/home/three-tier-webapp-api/.pm2
+PIDFile=/home/three-tier-webapp-api/.pm2/pm2.pid
+Restart=on-failure
+
+ExecStart=/opt/node/bin/pm2 start /data/three-tier-webapp/api/three-tier-webapp-api-server_pm2-ecosystem.yml
+ExecReload=/opt/node/bin/pm2 restart /data/three-tier-webapp/api/three-tier-webapp-api-server_pm2-ecosystem.yml
+ExecStop=/opt/node/bin/pm2 stop /data/three-tier-webapp/api/three-tier-webapp-api-server_pm2-ecosystem.yml
+
+[Install]
+WantedBy=multi-user.target

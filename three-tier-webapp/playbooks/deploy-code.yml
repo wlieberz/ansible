@@ -1,0 +1,77 @@
+---
+
+# Note: run this from the top level of the repo.
+# E.g., to run on a test server:
+# ansible-playbook playbooks/deploy-code.yml --limit test-server02
+
+- hosts: all
+  become: True
+  vars_files:
+    - ../vars/passwd.yml
+
+  tasks:  
+    - name: Enforce limit param.
+      fail:
+        msg: "You must use -l or --limit - when you really want to use all hosts, use -l 'all'"
+      when: ansible_limit is not defined
+
+    - name: Ensure repo is present.
+      git:
+        repo: git@github.example.com:example-user/code-repo.git
+        clone: yes
+        update: yes
+        force: yes
+        key_file: /home/deployment-user/.ssh/three-tier-webapp_git-repo_deploy-key
+        accept_hostkey: yes
+        dest: /data/three-tier-webapp/api/three-tier-webapp
+
+    - name: Run yarn.
+      shell:
+        chdir: /data/three-tier-webapp/api/three-tier-webapp
+        cmd: source /etc/profile.d/node-path-bash.sh; yarn
+        executable: /bin/bash
+
+    - name: Run yarn build-prod.
+      shell:
+        chdir: /data/three-tier-webapp/api/three-tier-webapp
+        cmd: source /etc/profile.d/node-path-bash.sh; yarn build-prod
+        executable: /bin/bash
+
+    - name: Clean web root.
+      file:
+        path: /data/three-tier-webapp/www/build
+        state: absent
+
+    - name: Copy new build to web root.
+      copy:
+        src: /data/three-tier-webapp/api/three-tier-webapp/frontend/build
+        dest: /data/three-tier-webapp/www/
+        remote_src: yes
+
+    - name: Restart http server.
+      service:
+        name: nginx
+        state: restarted
+  
+    - name: Create secrets.json for api-server.
+      template:
+        src: files/secrets.json.j2
+        dest: /data/three-tier-webapp/api/three-tier-webapp/secrets.json
+        owner: three-tier-webapp-api
+        group: three-tier-webapp-api
+        mode: '0400'
+        force: yes
+
+    - name: Ensure api-server root dir permissions.
+      file:
+        recurse: yes
+        owner: three-tier-webapp-api
+        group: three-tier-webapp-api
+        mode: u+rwX,g+rwX,o-rwx
+        path: /data/three-tier-webapp/api/
+
+    - name: Restart api-server service.
+      service:
+        name: three-tier-webapp-api-server
+        state: restarted
+        enabled: yes

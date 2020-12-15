@@ -1,0 +1,5 @@
+#!/bin/bash
+
+openssl req -new -newkey rsa:2048 -nodes -out {{ ansible_fqdn }}.csr -keyout {{ ansible_fqdn }}.key -subj "/C=US/ST=California/L=Burbank/O=Example Company Inc/OU=IT/CN={{ ansible_fqdn }}" -config csr.cnf
+
+exit

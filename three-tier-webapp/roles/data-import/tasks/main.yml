@@ -1,0 +1,38 @@
+---
+# tasks file for data-import
+
+- name: Add data-importers group.
+  group:
+    name: data-importers
+    state: present
+    system: no
+
+- name: Create /data/three-tier-webapp/data-import.
+  file:
+    path: /data/three-tier-webapp/data-import
+    state: directory
+    owner: root
+    group: data-importers
+    mode: '2770'
+
+- name: Set ACL on data-import.
+  become: true
+  acl:
+    path: /data/three-tier-webapp/data-import
+    entity: data-importers
+    etype: group
+    permissions: rwX
+    default: no
+    recursive: yes
+    state: present
+
+- name: Set default ACL on data-import.
+  become: true
+  acl:
+    path: /data/three-tier-webapp/data-import
+    entity: data-importers
+    etype: group
+    permissions: rwX
+    default: yes
+    recursive: yes
+    state: present

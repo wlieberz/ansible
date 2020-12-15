@@ -1,0 +1,29 @@
+---
+# CAUTION: This will drop the entire database. Use only when you want a fresh start.
+# After running this, you will need to:
+# 1) Create the database and import the schema.
+# 2) Import the SQL data. 
+# Number 1 is handled by the role "import-db-schema".
+
+- hosts: all
+  become: True
+  vars_files:
+    - ../vars/passwd.yml
+
+  tasks:
+    - name: Enforce limit param.
+      fail:
+        msg: "You must use -l or --limit - when you really want to use all hosts, use -l 'all'"
+      when: ansible_limit is not defined
+
+    - name: Remove db-schema-is-deployed statefile.
+      file:
+        path: /root/db-schema-is-deployed
+        state: absent
+
+    - name: Remove three-tier-webapp database.
+      mysql_db:
+        name: three-tier-webapp
+        state: absent
+        login_user: "{{ mariadb_dev_root_user }}"
+        login_password: "{{ mariadb_dev_root_user_passwd }}"

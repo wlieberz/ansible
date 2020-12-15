@@ -1,0 +1,66 @@
+---
+# tasks file for deployment-user
+
+- name: Add group deployers.
+  group:
+    name: deployers
+    state: present
+
+- name: Ensure deployment-user local account exists. 
+  become: true
+  user:
+    name: deployment-user
+    comment: For automated app deployment
+    shell: /bin/bash
+    local: yes
+    state: present
+
+- name: Ensure sudos for deployment-user.
+  become: true
+  copy:
+    src: files/deployment-user_sudos
+    dest: /etc/sudoers.d/deployment-user
+    force: yes
+    owner: root
+    group: root
+    mode: '0440'
+    validate: /sbin/visudo -cf %s
+
+- name: Create .ssh dir.
+  become: true
+  file:
+    path: /home/deployment-user/.ssh 
+    state: directory
+    owner: deployment-user
+    group: deployment-user
+    mode: '0700'
+
+- name: Add deployment public key.
+  become: true
+  copy:
+    src: files/three-tier-webapp_git-repo_deploy-key.pub
+    dest: /home/deployment-user/.ssh/three-tier-webapp_git-repo_deploy-key.pub
+    owner: deployment-user
+    group: deployment-user
+    mode: '0644'
+
+- name: Add deployment private key.
+  become: true
+  copy:
+    src: files/three-tier-webapp_git-repo_deploy-key_priv-key_encrypted
+    dest: /home/deployment-user/.ssh/three-tier-webapp_git-repo_deploy-key
+    owner: deployment-user
+    group: deployment-user
+    mode: '0400'
+    decrypt: yes
+    force: yes
+
+- name: Add ssh client config.
+  become: true
+  copy:
+    src: files/ssh_config
+    dest: /home/deployment-user/.ssh/config
+    owner: deployment-user
+    group: deployment-user
+    mode: '0600'
+    force: yes

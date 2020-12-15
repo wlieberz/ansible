@@ -1,0 +1,40 @@
+---
+
+# Before running this for the first time you need to:
+# ansible-galaxy collection install community.mysql
+
+- hosts: all
+  become: True
+  vars_files:
+    - ../vars/passwd.yml
+
+  tasks:
+    - name: Enforce limit param.
+      fail:
+        msg: "You must use -l or --limit - when you really want to use all hosts, use -l 'all'"
+      when: ansible_limit is not defined
+
+    - name: Get databases info.
+      community.mysql.mysql_info:
+        login_user: "{{ mariadb_dev_root_user }}"
+        login_password: "{{ mariadb_dev_root_user_passwd }}"
+        filter:
+          - databases
+        exclude_fields: db_size
+        return_empty_dbs: yes
+      register: db_info
+
+    - debug:
+        var: db_info.databases
+
+# Sample playbook output when three-tier-webapp database is present:
+#
+#ok: [three-tier-webapp] => {
+#    "db_info.databases": {
+#        "information_schema": {},
+#        "three-tier-webapp": {},
+#        "mysql": {},
+#        "performance_schema": {}
+#    }
+#}
+

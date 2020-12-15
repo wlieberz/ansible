@@ -1,0 +1,7 @@
+mariadb: mariadb-5.5.64-1.el7.x86_64
+mariadb_server: mariadb-server-5.5.64-1.el7.x86_64
+mariadb_libs: mariadb-libs-5.5.64-1.el7.x86_64
+mariadb_devel: mariadb-devel-5.5.64-1.el7.x86_64
+python_devel: python-devel-2.7.5-86.el7.x86_64
+gcc: gcc-4.8.5-39.el7.x86_64
+python2_pip: python2-pip-8.1.2-12.el7.noarch

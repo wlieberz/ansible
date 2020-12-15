@@ -1,0 +1,14 @@
+---
+# tasks file for sudoers
+
+- name: Ensure sudos for devs.
+  become: true
+  copy:
+    src: files/devs
+    dest: /etc/sudoers.d/devs
+    force: yes
+    owner: root
+    group: root
+    mode: '0440'
+    validate: /sbin/visudo -cf %s
+

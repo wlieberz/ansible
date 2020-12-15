@@ -1,0 +1,27 @@
+---
+# tasks file for firewalld
+
+- name: Start and enable firewalld.
+  service:
+    name: firewalld
+    state: started
+
+# To be able to use the new namespaced module you must
+# first install the collection with:
+# ansible-galaxy collection install ansible.posix
+- name: Open 4030/tcp for api-server.
+  become: true
+  ansible.posix.firewalld:
+    port: 4030/tcp
+    permanent: yes
+    state: enabled
+  notify: reload firewalld
+
+- name: Disable 25/tcp for api-server.
+  become: true
+  ansible.posix.firewalld:
+    port: 25/tcp
+    permanent: yes
+    state: disabled
+  notify: reload firewalld
+

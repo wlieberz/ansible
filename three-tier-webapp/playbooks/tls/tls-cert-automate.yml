@@ -1,0 +1,102 @@
+---
+- hosts: three-tier-webapp
+  become: true
+  vars:
+    tls_dir: "/etc/nginx-tls/{{ ansible_fqdn }}"
+    cert_type: Private
+    cert_ldap_group: information-technology
+  vars_files:
+    - ../../vars/passwd.yml
+
+  tasks:
+    - name: Ensure tls directory.
+      file:
+        path: "{{ tls_dir }}"
+        state: directory
+        recurse: yes
+    
+    - name: Ensure csr config file.
+      template:
+        src: csr.cnf.j2
+        dest: "{{ tls_dir }}/csr.cnf"
+
+    - name: Ensure generate-key-and-csr script.
+      template:
+        src: generate-key-and-csr.sh.j2
+        dest: "{{ tls_dir }}/generate-key-and-csr.sh"
+        owner: root
+        group: root
+        mode: '0770'
+
+    - name: Run script to generate key and csr.
+      become: true
+      shell: "./generate-key-and-csr.sh"
+      args:
+        chdir: "{{ tls_dir }}"
+        executable: /bin/bash
+        creates: "{{ tls_dir }}/{{ ansible_fqdn }}.key"
+ 
+    - name: Ensure key is secure.
+      become: true
+      file:
+        path: "{{ tls_dir }}/{{ ansible_fqdn }}.key"
+        owner: root
+        group: nginx
+        mode: '0440'
+
+    - name: Format csr as one line no header or footer.
+      become: true
+      shell:
+        chdir: "{{ tls_dir }}"
+        executable: /bin/bash
+        cmd: cat {{ ansible_fqdn }}.csr | sed '/-----BEGIN CERTIFICATE REQUEST----/d' | sed '/-----END CERTIFICATE REQUEST----/d' | tr -d '\n'
+      register: csr_oneline
+      changed_when: false
+
+    - name: Request tls cert from company ssl portal.
+      uri:
+        url: https://ssl.example.com/api/CertificateRequests
+        method: POST
+        url_username: wlieberz-ansible-runner
+        url_password: "{{ wlieberz_ansible_runner_password }}"
+        body: "{ \"certificateType\":\"{{ cert_type }}\", \"csr\":\"{{ csr_oneline.stdout }}\", \"owningLdapGroup\":\"{{ cert_ldap_group }}\" }"
+        body_format: json
+        return_content: yes
+        status_code: 201
+      register: ssl_portal_response
+
+    - name: Write server cert to server.
+      become: true
+      copy:
+        content: "{{ ssl_portal_response.json.certificate }}"
+        dest: "{{ tls_dir }}/{{ ansible_fqdn }}_just-server.pem"
+        force: no
+
+    - name: Copy root.pem to server.
+      become: true
+      copy:
+        src: root.pem
+        dest: "{{ tls_dir }}"
+
+    - name: Copy issuing.pem to server.
+      become: true
+      copy:
+        src: issuing.pem
+        dest: "{{ tls_dir }}"
+
+    - name: Ensure tls cert chain.
+      become: true
+      shell:
+        executable: /bin/bash
+        chdir: "{{ tls_dir }}"
+        cmd: "cat {{ ansible_fqdn }}_just-server.pem >> {{ ansible_fqdn }}.crt && echo \"\" >> {{ ansible_fqdn }}.crt && cat issuing.pem >> {{ ansible_fqdn }}.crt && echo \"\" >> {{ ansible_fqdn }}.crt && cat root.pem >> {{ ansible_fqdn }}.crt"
+        creates: "{{ ansible_fqdn }}.pem"
+
+    - name: Ensure cert is secure.
+      become: true
+      file:
+        path: "{{ tls_dir }}/{{ ansible_fqdn }}.crt"
+        owner: root
+        group: nginx
+        mode: '0440'
+

@@ -1,0 +1,14 @@
+---
+# tasks file for mysql-users
+
+- name: Ensure development root user is present.
+  mysql_user:
+    name: "{{ mariadb_dev_root_user }}"
+    password: "{{ mariadb_dev_root_user_passwd }}"
+    priv: '*.*:ALL'
+    state: present
+    update_password: always
+    login_user: root
+    login_password: "{{ mariadb_root_pass }}"
+    login_unix_socket: /data/three-tier-webapp/db/mysql.sock
+  no_log: true

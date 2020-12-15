@@ -1,0 +1,6 @@
+---
+# handlers file for api-server
+
+- name: reload systemd
+  become: true
+  shell: systemctl daemon-reload

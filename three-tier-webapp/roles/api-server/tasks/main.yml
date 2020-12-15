@@ -1,0 +1,61 @@
+---
+# tasks file for api-server
+
+- name: Ensure local user three-tier-webapp-api exists.
+  become: true
+  user:
+    name: three-tier-webapp-api
+    comment: User to run the three-tier-webapp api server.
+    shell: /sbin/nologin
+    local: yes  
+    create_home: yes
+    state: present
+
+- name: Ensure api directory exists.
+  become: true
+  file:
+    path: /data/three-tier-webapp/api
+    state: directory
+    owner: three-tier-webapp-api
+    group: three-tier-webapp-api
+    mode: u=rwx,g=rwx,o=rx
+
+- name: Install pm2 node process manager.
+  become: true
+  shell: source /etc/profile.d/node-path-bash.sh; npm install -g pm2@4.4.1
+  args:
+    executable: /bin/bash
+
+# Needed to run three-tier-webapp python scripts, eg dbimport.py.
+- name: Ensure python3-devel installed.
+  become: true
+  yum:
+    name: python3-devel.x86_64
+    state: installed
+
+- name: Install pm2 ecosystem file.
+  become: true
+  copy:
+    src: files/three-tier-webapp-api-server_pm2-ecosystem.yml
+    dest: /data/three-tier-webapp/api/three-tier-webapp-api-server_pm2-ecosystem.yml
+    owner: three-tier-webapp-api
+    group: three-tier-webapp-api
+    mode: '0440'
+    force: yes
+
+- name: Copy api-server systemd unit file.
+  become: true
+  copy:
+    src: files/three-tier-webapp-api-server.service
+    dest: /etc/systemd/system/three-tier-webapp-api-server.service
+    owner: root
+    group: root
+    mode: '0644'
+    force: yes
+  notify:
+    - reload systemd
+
+- name: Enable api-server service.
+  service:
+    name: three-tier-webapp-api-server
+    enabled: yes

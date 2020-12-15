@@ -1,0 +1,3 @@
+host github.example.com
+  IdentityFile ~/.ssh/three-tier-webapp_git-repo_deploy-key
+  StrictHostKeyChecking no

@@ -1,0 +1,88 @@
+---
+# tasks file for mariadb
+
+- name: Ensure mariadb packages are installed.
+  become: true
+  yum:
+    name: 
+      - "{{ mariadb }}"
+      - "{{ mariadb_server }}"
+      - "{{ mariadb_libs }}"
+      - "{{ mariadb_devel }}"
+      - "{{ python_devel }}"
+      - "{{ gcc }}"
+      - "{{ python2_pip }}"
+    state: "{{ mariadb_package_state }}"
+
+- name: Install the MySQL-Python Library
+  pip:
+    name: MySQL-python
+
+- name: Ensure mysql data dir present.
+  become: true
+  file:
+    path: /data/three-tier-webapp/db
+    state: directory
+    owner: mysql
+    group: mysql
+    mode: '0755'
+
+- name: Check SELinux status.
+  command: getenforce
+  register: sestatus
+  changed_when: false
+
+- name: Ensure selinux context correct for mysql data dir.
+  become: true
+  sefcontext:
+    target: '/data/three-tier-webapp/db(/.*)?'
+    setype: mysqld_db_t
+    state: present
+  register: mysql_datadir_selinux
+  when: 'not "Disabled" in sestatus.stdout'
+
+- name: Ensure selinux context applied to mysql data dir.
+  command: restorecon -irv /data/three-tier-webapp/db
+  when: mysql_datadir_selinux.changed
+
+- name: Ensure mariadb conf is in place.
+  become: true
+  copy:
+    src: files/my.cnf
+    dest: /etc/my.cnf
+    owner: root
+    group: root
+    mode: '0644'
+    backup: no
+    force: yes
+  notify:
+    - restart mariadb
+
+- name: Enure mariadb service is enabled and started.
+  become: true
+  service:
+    name: mariadb
+    state: started
+    enabled: yes
+
+- name: Symlink default mysql.sock to actual socket.
+  file:
+    src: /data/three-tier-webapp/db/mysql.sock
+    dest: /var/lib/mysql/mysql.sock
+    owner: root
+    group: root
+    state: link
+
+- name: Do mysql_secure_installation only for fresh install.
+  no_log: True
+  mysql_secure_installation:
+    login_password: ''
+    new_password: "{{ mariadb_root_pass }}"
+    user: root
+    login_host: localhost
+    hosts: ['localhost', '127.0.0.1', '::1']
+    change_root_password: true
+    remove_anonymous_user: true
+    disallow_root_login_remotely: true
+    remove_test_db: true
+  #register: secure

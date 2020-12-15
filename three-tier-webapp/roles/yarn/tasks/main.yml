@@ -1,0 +1,25 @@
+---
+# tasks file for roles/yarn
+
+- name: Check if yarn bin present.
+  become: true
+  stat:
+    path: /opt/node/bin/yarn
+  register: yarnbin_status
+  changed_when: false
+
+- name: Check yarn version.
+  become: true
+  shell: source /etc/profile.d/node-path-bash.sh; yarn -version
+  args:
+    executable: /bin/bash
+  register: yarn_vers
+  changed_when: false
+  when: yarnbin_status.stat.exists
+
+- name: Install yarn.
+  become: true
+  shell: source /etc/profile.d/node-path-bash.sh; npm install -g yarn@1.22.5
+  args:
+    executable: /bin/bash
+  when: not yarnbin_status.stat.exists or yarn_vers.stdout != "1.22.5"

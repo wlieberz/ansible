@@ -1,0 +1,38 @@
+---
+- hosts: all
+  become: True
+  vars_files:
+    - ../vars/passwd.yml
+
+  tasks:
+    - name: Enforce limit param.
+      fail:
+        msg: "You must use -l or --limit - when you really want to use all hosts, use -l 'all'"
+      when: ansible_limit is not defined
+
+    - name: Copy mysql schema file to server.
+      copy:
+       src: three-tier-webapp-model.sql
+       dest: /tmp/three-tier-webapp-model.sql
+       force: yes
+
+    - name: Import schema for three-tier-webapp DB.
+      mysql_db:
+        name: all
+        state: import
+        target: /tmp/three-tier-webapp-model.sql
+        login_user: "{{ mariadb_dev_root_user }}"
+        login_password: "{{ mariadb_dev_root_user_passwd }}"
+
+    - name: Clean-up mysql schema file.
+      file:
+        path: /tmp/three-tier-webapp-model.sql
+        state: absent
+
+    - name: Add statefile db-schema-is-deployed.
+      become: True
+      lineinfile:
+        path: /root/db-schema-is-deployed
+        create: yes
+        state: present
+        line: Ansible uses this file to determine DB state. Do not remove file unless you want to trigger schema re-import.

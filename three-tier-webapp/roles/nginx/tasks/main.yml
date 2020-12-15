@@ -1,0 +1,115 @@
+---
+# tasks file for nginx
+
+- name: Ensure EPEL repo is present.
+  become: true
+  command: yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+  args:
+    creates: /etc/yum.repos.d/epel.repo
+
+- name: Ensure nginx is installed.
+  become: true
+  yum:
+    name: nginx-1.16.1-1.el7.x86_64
+    state: present
+
+- name: Enure nginx service is enabled and started.
+  become: true
+  service:
+    name: nginx
+    state: started
+    enabled: yes
+
+- name: Ensure http port open firewalld.
+  become: true
+  firewalld:
+    zone: public
+    service: http
+    permanent: yes
+    state: enabled
+  notify: reload firewalld
+
+- name: Ensure https port open firewalld.
+  become: true
+  firewalld:
+    zone: public
+    service: https
+    permanent: yes
+    state: enabled
+  notify: reload firewalld
+
+- name: Ensure /data/three-tier-webapp/www root:nginx rwx r-s r-x.
+  become: true
+  file:
+    path: /data/three-tier-webapp/www
+    state: directory
+    owner: root
+    group: nginx
+    mode: '2755'
+
+# Note: we need two asks to handle the acl setting because:
+# # "a default ACL on its own does not take any action permission-wise - hence the double command."
+# # https://wiki.debian.org/Permissions#Appendix:_Some_hints
+- name: Set ACL on /data/three-tier-webapp/www nginx group gets rX.
+  become: true
+  acl:
+    path: /data/three-tier-webapp/www
+    entity: nginx
+    etype: group
+    permissions: rX
+    default: no
+    recursive: yes
+    state: present
+
+- name: Set default ACL on /data/three-tier-webapp/www nginx group gets rX.
+  become: true
+  acl:
+    path: /data/three-tier-webapp/www
+    entity: nginx
+    etype: group
+    permissions: rX
+    default: yes
+    recursive: yes
+    state: present
+
+# This can be skipped if these packages are installed
+# locally on the ansible control machine.
+# However, we can install them on the server as well.
+- name: Ensure selinux python bindings are installed.
+  become: true
+  yum:
+    name:
+      - libselinux-python.x86_64
+      - policycoreutils-python.x86_64
+    state: present
+
+- name: Check SELinux status.
+  command: getenforce
+  register: sestatus
+  changed_when: false
+
+- name: Ensure selinux context correct for http root.
+  become: true
+  sefcontext:
+    target: '/data/three-tier-webapp/www(/.*)?'
+    setype: httpd_sys_content_t
+    state: present
+  register: httproot_selinux
+  when: 'not "Disabled" in sestatus.stdout'
+
+- name: Ensure selinux context applied to http root.
+  command: restorecon -irv /data/three-tier-webapp/www
+  when: httproot_selinux.changed
+ 
+- name: Ensure nginx conf is in place.
+  become: true
+  template:
+    src: templates/nginx.j2
+    dest: /etc/nginx/nginx.conf
+    owner: root
+    group: root
+    mode: '0644'
+    backup: yes
+    force: yes
+  notify:
+    - restart nginx

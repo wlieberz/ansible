@@ -1,0 +1,11 @@
+---
+# handlers file for nginx
+- name: reload firewalld
+  become: true
+  command: firewall-cmd --reload
+
+- name: restart nginx
+  become: true
+  service:
+    name: nginx
+    state: restarted

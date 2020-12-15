@@ -1,0 +1,8 @@
+apps:
+  - script   : /data/three-tier-webapp/api/three-tier-webapp/api-server/lib/index.js
+    name     : 'api-server'
+    instances: 4
+    exec_mode: cluster
+    env      :
+      NODE_ENV: production
+

@@ -1,0 +1,51 @@
+---
+
+# Example of how you might configure a local development VM for testing:
+# Notice that some configuration is different for testing purposes
+# and/or to account for differneces between RHEL versions.
+#
+- hosts: testing
+  become: true
+  vars_files:
+    - vars/passwd.yml
+    - roles/mariadb/vars/mariadb-pkgs_no-versionlock.yml
+  vars:
+    - mariadb_package_state: present
+    - port_3031_tcp_state: disabled
+    - port_3030_tcp_state: disabled
+    - port_4030_tcp_state: enabled
+  roles:
+    - sudoers
+    - nodejs
+    - git
+    - yarn
+    - nginx
+    - firewalld
+    - mariadb
+    - mysql-users
+    - api-server
+    - data-import
+    - deployment-user
+
+- hosts: prod
+  become: true
+  vars_files:
+    - vars/passwd.yml
+    - roles/mariadb/vars/mariadb-pkgs_rhel-7.7.yml
+  vars:
+    - mariadb_package_state: present
+    - port_3031_tcp_state: disabled
+    - port_3030_tcp_state: disabled
+    - port_4030_tcp_state: enabled
+  roles:
+    - sudoers
+    - nodejs
+    - git
+    - yarn
+    - nginx
+    - firewalld
+    - mariadb
+    - mysql-users
+    - api-server
+    - data-import
+    - deployment-user

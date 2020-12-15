@@ -1,0 +1,48 @@
+---
+# tasks file for nodejs
+
+- name: Check if node dir present.
+  stat:
+    path: /opt/node/bin
+  register: nodedir
+  changed_when: false
+
+- name: Install nodejs.
+  block:
+    - name: Get install package from nodejs website.
+      become: true
+      get_url:
+        url: https://nodejs.org/dist/v12.18.3/node-v12.18.3-linux-x64.tar.xz
+        dest: /root
+    - name: Ensure /opt/node dir is present.
+      file:
+        path: /opt/node
+        state: directory
+        owner: root
+        group: root
+        mode: '0555'
+    - name: Untar node package to /opt/node .
+      become: true
+      shell:
+        cmd: tar --strip-components 1 -xf node-v* -C /opt/node
+      args:
+        chdir: /root
+        executable: /bin/bash
+        creates: /opt/node/bin
+        warn: false
+  when: not nodedir.stat.exists
+
+- name: Ensure node in bash path system-wide.
+  become: true
+  copy:
+    src: files/node-path-bash.sh
+    dest: /etc/profile.d/node-path-bash.sh
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Clean-up installation tarball.
+  become: true
+  file:
+    path: /root/node-v12.18.3-linux-x64.tar.xz
+    state: absent

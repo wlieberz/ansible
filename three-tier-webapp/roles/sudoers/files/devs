@@ -1,0 +1,10 @@
+
+Cmnd_Alias DEVCMDS = \
+/bin/systemctl start mariadb, \
+/bin/systemctl stop mariadb, \
+/bin/systemctl restart mariadb, \
+/bin/systemctl start nginx, \
+/bin/systemctl stop nginx, \
+/bin/systemctl restart nginx
+
+%devs ALL=(root) NOPASSWD: DEVCMDS

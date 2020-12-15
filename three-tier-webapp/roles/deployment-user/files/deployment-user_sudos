@@ -1,0 +1,9 @@
+# Members of the "deployers" posix group can become the deployment-user
+# by running: sudo -u deployment-user bash -i
+%deployers ALL=(deployment-user) NOPASSWD: /bin/bash
+
+# Commands the deployment-user can run:
+Cmnd_Alias DEPLOYCMDS=/bin/systemctl restart nginx
+
+# User_name Machine_name=(Effective_user) command
+deployment-user ALL=(root) NOPASSWD: DEPLOYCMDS

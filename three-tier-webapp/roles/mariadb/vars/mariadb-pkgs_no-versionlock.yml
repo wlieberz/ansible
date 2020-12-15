@@ -1,0 +1,7 @@
+mariadb: mariadb.x86_64
+mariadb_server: mariadb-server.x86_64
+mariadb_libs: mariadb-libs.x86_64
+mariadb_devel: mariadb-devel.x86_64
+python_devel: python-devel.x86_64
+gcc: gcc.x86_64
+python2_pip: python2-pip.noarch
