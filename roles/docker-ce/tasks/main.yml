@@ -54,7 +54,7 @@
     state: started
     enabled: yes
 
-- name: Ensure daemon.json config.
+- name: Manage DNS in daemon.json config.
   become: true
   template:
     src: daemon.json.j2
@@ -64,3 +64,4 @@
     mode: '0664'
   notify:
   - restart docker
+  when: manage_dns_via_daemon_json == "yes" 

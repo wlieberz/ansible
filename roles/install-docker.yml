@@ -1,0 +1,12 @@
+---
+
+- hosts: localhost
+  become: true
+  vars:
+    docker_dns_server_1: 8.8.8.8
+    docker_dns_server_2: 9.9.9.9
+    manage_dns_via_daemon_json: no # set to yes if you want to set the above dns values.
+  roles:
+    - docker-ce
+
+
