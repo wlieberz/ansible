@@ -1,0 +1,37 @@
+---
+
+# playbook usage:
+#
+# ansible-playbook create-local-user.yml -e user=desiredNewUser -e pass=PasswordToSet
+#
+# Note: if the user account already exists on the host
+# the existing password will not be overwritten.
+
+- name: Add Local User to Hosts
+  hosts: nonldap_hosts
+  gather_facts: False
+
+  tasks:
+
+  - name: Generate password salt.
+    shell:
+      cmd: tr -dc A-Za-z0-9 </dev/urandom | head -c 13
+    register: password_salt
+    delegate_to: localhost
+
+  - name: Encrypt Password
+    shell:
+      cmd: /usr/bin/env python3 -c 'import crypt; print(crypt.crypt("{{ pass }}", "{{ password_salt.stdout }}"))'
+    register: pass_hash
+    delegate_to: localhost
+  
+  - name: Ensure User Account
+    become: true
+    user:
+      create_home: yes
+      skeleton: /etc/skel
+      shell: /bin/bash
+      name: "{{ user }}"
+      password: "{{ pass_hash.stdout }}"
+      state: present
+      update_password: on_create 
