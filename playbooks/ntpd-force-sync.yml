@@ -1,0 +1,25 @@
+---
+
+- name: Force ntpd sync.
+  hosts: "{{ target }}" 
+
+  tasks:
+
+  - name: Stop ntpd service.
+    become: true
+    service:
+      name: ntpd
+      state: stopped
+
+  # ntpd -gq imitates ntpdate which is to be retired.
+  - name: Run ntpd sync command.
+    become: true
+    shell:
+      cmd: /usr/sbin/ntpd -gq
+      executable: /usr/bin/bash    
+
+  - name: Start ntpd service.
+    become: true
+    service:
+      name: ntpd
+      state: started
