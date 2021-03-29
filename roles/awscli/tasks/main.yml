@@ -1,0 +1,48 @@
+---
+# tasks file for awscli
+
+- name: Check if awscli installed.
+  stat:
+    path:  "{{ awscli_install_path }}"
+  register: awscli_path
+
+- name: Install awscli if not installed.
+  block:
+    - name: Get install zip.
+      get_url:
+        url: "{{ awscli_install_url }}"
+        dest: "~/{{ awscli_install_zip }}"
+      delegate_to: 127.0.0.1  
+
+    - name: Copy zip to remote host.
+      become: true
+      copy:
+        src: "~/{{ awscli_install_zip }}"
+        dest: "/tmp/{{ awscli_install_zip }}"
+
+    - name: Unzip installer.
+      become: true
+      unarchive:
+        src: "/tmp/{{ awscli_install_zip }}"
+        dest: /tmp/
+        remote_src: yes
+
+    - name: Run installer.
+      become: true
+      command:
+        cmd: /tmp/aws/install
+        creates: "{{ awscli_install_path }}"
+
+    - name: Remove installer.
+      become: true
+      file:
+        path: /tmp/aws
+        state: absent
+
+    - name: Remove installer zip.
+      become: true
+      file:
+        path: "/tmp/{{ awscli_install_zip }}"
+        state: absent
+
+  when: not awscli_path.stat.exists

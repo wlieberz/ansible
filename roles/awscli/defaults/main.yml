@@ -1,0 +1,5 @@
+---
+# defaults file for awscli
+awscli_install_path: /usr/local/bin/aws
+awscli_install_url: https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
+awscli_install_zip: awscli-exe-linux-x86_64.zip
